@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8;
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IValidationEngine} from "../interfaces/IValidationEngine.sol";
 
 contract MockValidationEngine is IValidationEngine {
@@ -11,6 +12,14 @@ contract MockValidationEngine is IValidationEngine {
         require(owner == address(0), "Already initialized");
         owner = owner_;
         shouldPass = true;
+    }
+
+    function defaultAdmin() external view returns (address) {
+        return owner;
+    }
+
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        return interfaceId == type(IValidationEngine).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 
     function setShouldPass(bool value) external {
