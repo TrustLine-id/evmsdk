@@ -7,10 +7,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 //import {Trustlined} from "@trustline.id/evmsdk/contracts/Trustlined.sol";
 import {Trustlined} from "../Trustlined.sol";
 
-/// @title PaymentFirewall
+/// @title PaymentForwarder
 /// @author Trustline
-/// @notice This contract is a firewall ensuring all funds going in and out are compliant
-contract PaymentFirewall is Trustlined, ReentrancyGuard {
+/// @notice Example contract ensuring guarded native and token payments are compliant
+contract PaymentForwarder is Trustlined, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     constructor(address trustlineValidationEngineLogic, address trustlineValidationEngineProxy) Trustlined(trustlineValidationEngineLogic, trustlineValidationEngineProxy) {}

@@ -314,9 +314,9 @@ The SDK supports different validation modes for various DeFi protocols. These ca
 
 ## Examples
 
-### Payment Firewall
+### Payment Forwarder
 
-A complete example that ensures all payments are compliant. See the [PaymentFirewall.sol](contracts/examples/PaymentFirewall.sol) contract for the full implementation.
+A complete example that ensures all payments are compliant. See the [PaymentForwarder.sol](contracts/examples/PaymentForwarder.sol) contract for the full implementation.
 
 
 ## Upgradeable Contracts
