@@ -12,6 +12,7 @@ A Solidity SDK for protecting EVM-compatible smart contracts from unauthorized a
 - ✅ **ERC20 & ERC3643 Support** - Secure operations on standard token contracts
 - ✅ **Proxy Deployment** - Automatic Validation Engine proxy deployment
 - ✅ **Flexible Integration** - Use existing Validation Engine or deploy new instance
+- ✅ **Firewall intermediary** - Generic forward proxy to protect existing contracts with configurable access roles
 
 ## Installation
 
@@ -28,8 +29,9 @@ Validation is performed through a small set of on-chain/off-chain components:
 - **Validation Engine logic** — The implementation contract that runs Trustline's transaction validation logic. It verifies certificates issued by **Trustline's Oracle backend** (and optionally consults other oracles) to decide whether a transaction and its addresses are authorized. Trustline deploys it on supported blockchains.
 - **Trustline's Oracle backend** — Trustline’s off-chain service that issues validation certificates to the on-chain Validation Engine.
 - **Other oracles** — The Validation Engine can aggregate data from additional on-chain oracles (e.g. sanctions lists) so validation uses multiple data sources.
+- **TrustlineFirewall** — Intermediary that forwards calls to an existing target after validation. Configure the target so privileged actions are allowed only from the firewall address; callers invoke the firewall, which runs `requireTrustline()` then forwards with a regular `call` (the target sees the firewall as `msg.sender`).
 
-In short: your contract → Validation Engine proxy → Validation Engine logic → Trustline Oracle backend + other oracles. You only configure your contract with the logic address or an already-deployed proxy (for advanced use cases) at deploy time; the rest is handled by Trustline’s infrastructure.
+In short: your contract → Validation Engine proxy → Validation Engine logic → Trustline Oracle backend + other oracles. You only configure your contract with the logic address or an already-deployed proxy (for advanced use cases) at deploy time; the rest is handled by Trustline’s infrastructure. Alternatively, deploy a **TrustlineFirewall** in front of a contract you do not want to modify directly.
 
 ## Quick Start
 
@@ -318,6 +320,38 @@ The SDK supports different validation modes for various DeFi protocols. These ca
 
 A complete example that ensures all payments are compliant. See the [PaymentForwarder.sol](contracts/examples/PaymentForwarder.sol) contract for the full implementation.
 
+### Trustline Firewall
+
+Generic intermediary for protecting an **existing contract** without embedding Trustline in every method. Callers invoke the firewall; it runs `requireTrustline()`, then forwards calldata and value to a fixed **target** with a regular `call`. The target executes in its own context and sees `msg.sender` as the firewall address.
+
+Typical setup: grant each firewall the privileged role it protects on the target (e.g. owner, curator, allocator), then route operations through that firewall instead of calling the target directly. When the protocol has several distinct roles, deploy **one firewall per role**, each with its own operators.
+
+#### Access model
+
+| Role | Scope |
+|------|-------|
+| **`owner`** | Single admin — `setTarget`, `setOwner`, `setOperator`, `setPublicForward` (all Trustline-protected) |
+| **`isOperator`** | Mapping of addresses allowed on the protected forward path (`fallback` / `receive`) |
+| **`publicForward`** | When `true`, any address may use the forward path (still Trustline-gated) |
+
+The owner is **not** an operator by default. To let the admin forward calls, call `setOperator(owner, true)`. To allow unrestricted callers on protected methods, call `setPublicForward(true)`.
+
+#### Deployment
+
+```solidity
+import {TrustlineFirewall} from "@trustline.id/evmsdk/contracts/examples/TrustlineFirewall.sol";
+
+new TrustlineFirewall(
+    targetAddress,
+    validationEngineLogic,
+    validationEngineProxy,  // address(0) to auto-deploy a new proxy
+    adminOwner,
+    initialOperator,        // address(0) to skip
+    initialPublicForward    // false = operators only
+);
+```
+
+See [TrustlineFirewall.sol](contracts/examples/TrustlineFirewall.sol) for the full implementation.
 
 ## Upgradeable Contracts
 
